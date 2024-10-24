@@ -53,8 +53,14 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
             response.setStatusCode(HttpStatus.UNAUTHORIZED);
             return response.setComplete();
         }
-        //TODO 5.传递用户信息
-        return chain.filter(exchange);
+        // 5.传递用户信息
+        String userInfo = userId.toString();
+        // 重新构建exchange
+        ServerWebExchange newExchange = exchange.mutate()
+                .request(builder -> builder.header("user-info", userInfo))
+                .build();
+        // 在common中添加拦截器设置ThreadLocal保证每个微服务能拿到user-info
+        return chain.filter(newExchange);
     }
 
     private boolean isExclude(String path) {
