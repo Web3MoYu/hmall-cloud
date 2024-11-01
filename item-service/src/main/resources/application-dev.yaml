@@ -1,4 +1,0 @@
-hm:
-  db:
-    host: mysql-hmall
-    pw: root

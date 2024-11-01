@@ -3,7 +3,6 @@ server:
 feign:
   okhttp:
     enabled: true
-
 # 用于nacos共享配置中的参数
 hm:
   db:
