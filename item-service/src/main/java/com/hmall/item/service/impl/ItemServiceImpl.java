@@ -9,7 +9,9 @@ import com.hmall.item.domain.po.Item;
 import com.hmall.item.mapper.ItemMapper;
 import com.hmall.item.service.IItemService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import javax.annotation.Resource;
 import java.util.Collection;
 import java.util.List;
 
@@ -22,6 +24,10 @@ import java.util.List;
  */
 @Service
 public class ItemServiceImpl extends ServiceImpl<ItemMapper, Item> implements IItemService {
+
+
+    @Resource
+    ItemMapper itemMapper;
 
     @Override
     public void deductStock(List<OrderDetailDTO> items) {
@@ -40,5 +46,13 @@ public class ItemServiceImpl extends ServiceImpl<ItemMapper, Item> implements II
     @Override
     public List<ItemDTO> queryItemByIds(Collection<Long> ids) {
         return BeanUtils.copyList(listByIds(ids), ItemDTO.class);
+    }
+
+    @Override
+    @Transactional
+    public void recoverItems(List<OrderDetailDTO> list) {
+        for (OrderDetailDTO item : list) {
+            itemMapper.recoverStock(item);
+        }
     }
 }

@@ -71,7 +71,7 @@ public class PayOrderServiceImpl extends ServiceImpl<PayOrderMapper, PayOrder> i
         try {
             rabbitTemplate.convertAndSend("pay.direct", "pay.success", po.getBizOrderNo());
         } catch (Exception e) {
-            // TODO rabbitmq兜底方案
+            // rabbitmq兜底方案(延迟消息)
             log.error("发送支付状态通知失败，id:{}", po.getBizOrderNo(), e);
         }
     }
