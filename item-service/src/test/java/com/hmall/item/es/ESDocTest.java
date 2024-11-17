@@ -3,10 +3,12 @@ package com.hmall.item.es;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.json.JSONUtil;
 import com.alibaba.fastjson.JSON;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hmall.item.domain.po.Item;
 import com.hmall.item.domain.po.ItemDoc;
 import com.hmall.item.service.IItemService;
 import org.apache.http.HttpHost;
+import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
@@ -23,6 +25,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 import javax.annotation.Resource;
 import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.*;
 
 @SpringBootTest
 public class ESDocTest {
@@ -75,6 +79,47 @@ public class ESDocTest {
         );
         // 3.请求
         client.update(request, RequestOptions.DEFAULT);
+    }
+
+    // 文档的批处理
+    @Test
+    void testBulk() throws InterruptedException {
+        int pageNo = 1, pageSize = 500;
+        ThreadPoolExecutor executor = new ThreadPoolExecutor(5, 10, 30,
+                TimeUnit.SECONDS, new LinkedBlockingQueue<>());
+        int count = itemService.lambdaQuery()
+                .eq(Item::getStatus, 1).count();
+        CountDownLatch latch = new CountDownLatch((count / 500) + 1);
+        while (true) {
+            // 0.准备文档数据
+            Page<Item> page = itemService.lambdaQuery()
+                    .eq(Item::getStatus, 1)
+                    .page(Page.of(pageNo, pageSize));
+            List<Item> records = page.getRecords();
+            if (records == null || records.isEmpty()) {
+                latch.await();
+                return;
+            }
+            executor.submit(() -> {
+                // 1.准备request
+                BulkRequest request = new BulkRequest();
+                // 2.准备批处理
+                for (Item item : records) {
+                    ItemDoc itemDoc = BeanUtil.copyProperties(item, ItemDoc.class);
+                    request.add(new IndexRequest("items")
+                            .id(item.getId().toString())
+                            .source(JSONUtil.toJsonStr(itemDoc), XContentType.JSON));
+                }
+                // 3.发送请求
+                try {
+                    client.bulk(request, RequestOptions.DEFAULT);
+                    latch.countDown();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+            pageNo++;
+        }
     }
 
     @BeforeEach
