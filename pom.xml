@@ -38,6 +38,8 @@
         <mybatis-plus.version>3.4.3</mybatis-plus.version>
         <hutool.version>5.8.11</hutool.version>
         <mysql.version>8.0.23</mysql.version>
+        <!--设置docker中的es版本-->
+        <elasticsearch.version>7.17.25</elasticsearch.version>
     </properties>
 
     <!-- 对依赖包进行管理 -->
